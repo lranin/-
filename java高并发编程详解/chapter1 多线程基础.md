@@ -116,7 +116,7 @@ private void init(ThreadGroup g, Runnable target, String name,
   ※The Java Virtual Machine exits when the only threads running are all daemon threads.
 
 1. 守护线程的属性deamon is true
-2. 守护线程是具有传递性的
+2. 守护线程是具有**父子传递性**的
 3. 守护线程的特性是它的生命周期是会自动结束的,在没有非守护线程存活时,它会自动terminated
 4. 守护线程通常作为后台线程存在,例如游戏和服务器通信的线程
 
@@ -175,7 +175,9 @@ throws InterruptedException {
     }
 
     if (millis == 0) {
+        //当前线程dead终止循环
         while (isAlive()) {
+            //wait()方法-> 锁主体(被竞争的对象): this,竞争线程: Thread.currentThread()
             wait(0);
         }
     } else {
@@ -191,9 +193,97 @@ throws InterruptedException {
 }
 ```
 
+### 如何关闭一个线程
 
+##### 正常关闭
+
+1. 线程生命周期正常结束,如代码执行完毕
+
+2. 捕获中断信号退出
+
+   ```java
+   while (!isInterrupted()) {
+   	//working. 
+   }
+   //代码的风险在于isInterrupted方法的标记可能被擦除,线程无法按照预设逻辑退出
+   
+   while(true){
+   //working. 
+   	try {
+   		TimeUnit. MILLISECONDS. sleep( 1); 
+   	} catch (InterruptedException e){
+           break; 
+       }
+   }
+   //代码的风险在于不是每段代码都会有InterruptedException方法调用
+   ```
+
+3. 使用volatile开发控制
+
+   ```java
+   private volatile boolean closed = false;
+   run(){
+       while (!closed && !isInterrupted()) {
+           //正在 运行 
+       }
+       System. out. println(" I will be exiting.");
+   }
+   
+   close(){
+       this. closed = true;
+       this. interrupt();
+   }
+   ```
+
+##### 异常关闭
+
+在一个线程的执行单元中，是不允许抛出checked异常的，不论Thread中的run方法，还是Runnable中的run方法，如果线程在运行过程中需要捕获checked异常并且判断是否还有运行下去的必要，那么此时可以将checked异常封装成unchecked异常（RuntimeException）抛出进而结束线程的生命周期。
+
+##### 进程假死
+
+相信很多程序员都会遇到进程假死的情况，所谓假死就是进程虽然存在，但没有日志输出，程序不进行任何的作业，看起来就像死了一样，但事实上它是没有死的，程序之所以出现这样的情况，绝大部分的原因就是某个线程阻塞了，或者线程出现了死锁的情况。
+
+这种情况需要借助工具,比如jstack,jconsole,jvisualvm
 
 ## 线程安全与数据同步
+
+### 并发的两个关键问题
+
+线程间如何通信？即：线程之间以何种机制来交换信息
+
+线程间如何同步？即：线程以何种机制来控制不同线程间操作发生的相对顺序
+
+有两种并发模型可以解决这两个问题：
+
+- 消息传递并发模型
+
+- 共享内存并发模型  (**java使用**)
+
+- 对于每一个线程来说，栈都是私有的，而堆是共有的。
+
+  也就是说在栈中的变量（局部变量、方法定义参数、异常处理器参数）不会在线程之间共享，也就不会有内存可见性的问题，也不受内存模型的影响。而在堆中的变量是共享的，本文称为共享变量。
+
+  所以，内存可见性是针对的**共享变量**。
+
+* 既然堆是共享的，为什么在堆中会有内存不可见问题?
+
+  这是因为现代计算机为了⾼效，往往会在⾼速缓存区中缓存共享变量，因为cpu访问缓存区⽐访问内存要快得多。
+
+  JMM又规定:
+
+  1. 所有的共享变量都存在主内存中。 
+
+  2. 每个线程都保存了⼀份该线程使⽤到的共享变量的副本。
+
+  3. 如果线程A与线程B之间要通信的话，必须经历下⾯2个步骤：
+
+      i.  线程A将本地内存A中更新过的共享变量刷新到主内存中去。
+
+      ii.  线程B到主内存中去读取线程A之前已经更新过的共享变量。
+
+  **所以，线程A⽆法直接访问线程B的⼯作内存，线程间通信必须经过主内存。**
+
+  
 
 ## 线程间通信
 
