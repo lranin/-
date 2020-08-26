@@ -1,5 +1,6 @@
 ## 生命周期
 ![线程的生命周期](C:\program1\notes\java高并发编程详解\线程生命周期.png)
+![线程的生命周期转换](assets/markdown-img-paste-20200825134849437.png)
 
 | 状态       | 含义           | 转变方法                                  |
 | ---------- | -------------- | ----------------------------------------- |
@@ -43,7 +44,7 @@ public synchronized void start() {
     try {
         //jndi方法,在其中调用了线程的run()
         start0();
-        //疑问:jvm保证了指令排序?
+        //synchronized保证状态安全
         started = true;
     } finally {
         try {
@@ -69,7 +70,7 @@ private void init(ThreadGroup g, Runnable target, String name,
     }
 
     this.name = name;
-    
+
 	//父线程为创建该线程的线程
     Thread parent = currentThread();
     SecurityManager security = System.getSecurityManager();
@@ -152,10 +153,10 @@ private void init(ThreadGroup g, Runnable target, String name,
 
 * Object 的 wait 方法; wait(long); wait(long, int)方法。
 
-* Thread 的 sleep(long)方法。 Thread 的 sleep（ long， int）方法。 
-* Thread 的 join 方法。 Thread 的 join（ long）方法。 Thread 的 join（ long， int）方法。 
-* InterruptibleChannel 的 io 操作。 
-* Selector 的 wakeup 方法。 
+* Thread 的 sleep(long)方法。 Thread 的 sleep（ long， int）方法。
+* Thread 的 join 方法。 Thread 的 join（ long）方法。 Thread 的 join（ long， int）方法。
+* InterruptibleChannel 的 io 操作。
+* Selector 的 wakeup 方法。
 * 其他方法
 
 上述方法都会将线程进入blocked状态
@@ -203,16 +204,16 @@ throws InterruptedException {
 
    ```java
    while (!isInterrupted()) {
-   	//working. 
+   	//working.
    }
    //代码的风险在于isInterrupted方法的标记可能被擦除,线程无法按照预设逻辑退出
-   
+
    while(true){
-   //working. 
+   //working.
    	try {
-   		TimeUnit. MILLISECONDS. sleep( 1); 
+   		TimeUnit. MILLISECONDS. sleep( 1);
    	} catch (InterruptedException e){
-           break; 
+           break;
        }
    }
    //代码的风险在于不是每段代码都会有InterruptedException方法调用
@@ -224,11 +225,11 @@ throws InterruptedException {
    private volatile boolean closed = false;
    run(){
        while (!closed && !isInterrupted()) {
-           //正在 运行 
+           //正在 运行
        }
        System. out. println(" I will be exiting.");
    }
-   
+
    close(){
        this. closed = true;
        this. interrupt();
@@ -271,7 +272,7 @@ throws InterruptedException {
 
   JMM又规定:
 
-  1. 所有的共享变量都存在主内存中。 
+  1. 所有的共享变量都存在主内存中。
 
   2. 每个线程都保存了⼀份该线程使⽤到的共享变量的副本。
 
@@ -283,7 +284,7 @@ throws InterruptedException {
 
   **所以，线程A⽆法直接访问线程B的⼯作内存，线程间通信必须经过主内存。**
 
-  
+
 
 ## 线程间通信
 

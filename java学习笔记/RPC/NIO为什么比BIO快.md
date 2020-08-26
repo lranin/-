@@ -12,11 +12,15 @@
 
 [I/O中断原理](https://www.cnblogs.com/Jack-Blog/p/12038716.html)
 
-在OS层面上,有中断还是没有中断对于用户来说线程都是阻塞的,因此包装一层的java IO,也是会被阻塞挂起的.
+[10分钟看懂， Java NIO 底层原理](https://www.cnblogs.com/crazymakercircle/p/10225159.html)
+
+在OS层面上,有中断还是没有中断对于用户来说线程都是阻塞的,因此包装一层的java IO,调用它的线程也是会被阻塞挂起的.
+
+*重要: java NIO（New IO） 不是IO模型中的NIO模型，而是另外的一种模型，叫做IO多路复用模型（ IO multiplexing ）。*
 
 ## JAVA中的IO
 
-### 1. BIO模型
+### 1. BIO模型(对应OS的BLOCKING-IO)
 ```Java
 //以下代码均未处理异常和关闭连接
 ServerSocket server = new ServerSocket(PORT);
@@ -54,10 +58,12 @@ private void socketHandler(Socket socket){
   }
 }
 ```
+BIO: 线程阻塞式调用OS的IO操作,进入IO操作时,线程一定会被block
+
 1. **阻塞式调用:**main线程将会被挂起(BLOCKING),假如这时新的客户端连接进入,那么新连接将无法被处理,必须等待上一个连接处理完成,while循环才能继续
 2. **新线程调用:**解决了阻塞式调用面临的问题,每个连接都有一个线程处理,main线程不会被阻塞,新的连接进来后可以直接被处理.但这也带来的**新的问题**,加入连接的客户端过多,那么启动的线程将会是几千甚至是几万,这种情况下,线程切换和创建带来的负担,可能会直接打满CPU.
 
-### 2. NIO模型
+### 2. NIO模型(对应epoll)
 ``` java
 //初始化代码块
 {
@@ -137,15 +143,21 @@ private void dispatch(SelectionKey key) throws IOException {
     }
 }
 ```
+NIO: NIO并不为连接开启线程,而只是将连接对象注册到selector(事件监听器)上,selector.select()方法实际调用了OS层面的epoll机制,更新selector中注册对象的状态
+
 * NIO巧妙的使用Reactor模型,在单线程中分发请求到对应的Handler上处理
 
-  * 基于事件驱动-> selector() 监听注册在其上的事件
+  * 基于事件驱动-> selector() 调用epoll更新注册在其上对象的状态
 
   * 统一的事件分派中心-> dispatch() 分发事件
 
   * 事件处理服务-> connect & read & write
-* 在NIO模型中,整体就只有一个selector线程对注册在它之上的**ServerSocketChannel**和**SocketChannel**进行轮询,检测他们的状态变更,然后进行对应的操作
+* 在NIO模型中,整体就只有一个selector线程对注册在它之上的**ServerSocketChannel**和**SocketChannel**对象根据OS的epoll返回值进行状态的变更,然后进行对应的事件分发
 * **ServerSocketChannel**和**SocketChannel**的状态变更是OS底层回调变更的,例如在windows中sun.nio.ch.WindowsSelectorImpl.SubSelector#poll0 这个native方法会更新socket持有的FD,将状态写入
+
+### 3. NIO的channel的ZERO-COPY特性
+
+[Netty与Zero Copy](https://binglau7.github.io/2018/12/10/Netty%E4%B8%8EZero-Copy/)
 
 ### 总结
 在连接数较少时,NIO和BIO实际上是没有什么速度差异的,并且因为NIO还需要很多额外的代码工作(文中未提及的解半包,网络闪断,安全认证,编码及解码等),因此优先选择BIO.
