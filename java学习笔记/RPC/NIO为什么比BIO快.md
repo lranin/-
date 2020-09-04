@@ -175,7 +175,7 @@ NIO: NIO并不为连接开启线程,而只是将连接对象注册到selector(�
 
 ### 3. NIO的channel的ZERO-COPY特性
 
-[Netty与Zero Copy](https://binglau7.github.io/2018/12/10/Netty%E4%B8%8EZero-Copy/)
+[NIO的ZERO-COPY特性](java学习笔记\RPC\NIO的ZERO-COPY特性.md)
 
 ### 总结
 在连接数较少时,NIO和BIO实际上是没有什么速度差异的,并且因为NIO还需要很多额外的代码工作(文中未提及的解半包,网络闪断,安全认证,编码及解码等),因此优先选择BIO.
@@ -183,6 +183,8 @@ NIO: NIO并不为连接开启线程,而只是将连接对象注册到selector(�
 连接数较多时,NIO因为单线程处理所有连接的IO,在线程上的极大优势,将会比BIO的性能高出很多.
 
 所以,NIO在连接数多时,优于BIO.
+
+并且NIO还具有了ZERO-COPY(mmap形式)特性,在数据流小的情况下,数据传输
 
 当然,还是**没有银弹**这个软件设计原则,根据内部情况和外部环境才能做出最优抉择.
 
